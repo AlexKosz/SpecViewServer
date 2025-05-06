@@ -27,6 +27,8 @@ class FileController {
         return res.status(401).json({ msg: 'User not logged in' });
       }
 
+      fileToSave.userId = user._id;
+
       const file = new File(fileToSave);
       await file.save();
 
@@ -47,6 +49,23 @@ class FileController {
       }
 
       return res.json(file);
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  static async getUserFiles(req, res) {
+    try {
+      const decodedJWT = jwt.decode(req.cookies.usertoken, { complete: true });
+      const user = await User.findById(decodedJWT.payload._id);
+
+      if (!user) {
+        return res.status(401).json({ msg: 'User not logged in' });
+      }
+
+      const files = await File.find({ userId: user._id }).sort({ createdAt: -1 });
+
+      return res.json({ files });
     } catch (err) {
       return res.status(500).json({ error: err.message });
     }
