@@ -70,6 +70,35 @@ class FileController {
       return res.status(500).json({ error: err.message });
     }
   }
+
+  static async delete(req, res) {
+    try {
+      const { id } = req.params;
+
+      const decodedJWT = jwt.decode(req.cookies.usertoken, { complete: true });
+      const user = await User.findById(decodedJWT.payload._id);
+
+      if (!user) {
+        return res.status(401).json({ msg: 'User not logged in' });
+      }
+
+      const file = await File.findById(id);
+
+      if (!file) {
+        return res.status(404).json({ msg: 'File not found' });
+      }
+
+      if (file.userId.toString() !== user._id.toString()) {
+        return res.status(403).json({ msg: 'Unauthorized to delete this file' });
+      }
+
+      await File.findByIdAndDelete(id);
+
+      return res.json({ msg: 'File deleted successfully' });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
 }
 
 module.exports = FileController;

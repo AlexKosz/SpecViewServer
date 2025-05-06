@@ -5,4 +5,5 @@ module.exports = (app) => {
   app.post('/files/upload', authen, Files.upload);
   app.post('/files/readById', Files.readById);
   app.get('/files/getUserFiles', authen, Files.getUserFiles);
+  app.delete('/files/:id', authen, Files.delete);
 };
