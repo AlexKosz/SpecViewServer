@@ -40,7 +40,7 @@ class FileController {
 
   static async readById(req, res) {
     try {
-      const { id } = req.body;
+      const { id } = req.params; // Retrieve ID from URL parameters
 
       const file = await File.findOne({ _id: id });
 
