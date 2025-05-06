@@ -3,7 +3,7 @@ const { authen } = require('../config/jwt');
 
 module.exports = (app) => {
   app.post('/files/upload', authen, Files.upload);
-  app.post('/files/readById', Files.readById);
   app.get('/files/getUserFiles', authen, Files.getUserFiles);
+  app.get('/files/:id', Files.readById);
   app.delete('/files/:id', authen, Files.delete);
 };
