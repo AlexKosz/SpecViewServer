@@ -7,7 +7,8 @@ const bodyParser = require('body-parser'); // Import body-parser
 require('dotenv').config();
 // use dotenv to load environment variables from a .env file into process.env
 const port = process.env.PORT || 8000;
-const uiUrl = process.env.UI_URL || 'http://localhost:3000';
+
+const allowedOrigins = process?.env?.ALLOWED_ORIGINS?.split(',');
 
 const app = express();
 
@@ -19,7 +20,14 @@ app.use(helmet());
 app.use(
   cors({
     credentials: true,
-    origin: uiUrl,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`Blocked by CORS: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
   }),
 );
 
