@@ -15,6 +15,9 @@ class UserController {
         res
           .cookie('usertoken', jwt.sign({ _id: user.id }, secret), {
             httpOnly: true,
+            secure: true, // Ensure the cookie is only sent over HTTPS
+            sameSite: 'None', // Allows cross-origin requests
+            path: '/',
           })
           .json({ msg: 'Created user successfully', user });
       })
@@ -49,6 +52,9 @@ class UserController {
                 res
                   .cookie('usertoken', jwt.sign({ _id: user.id }, secret), {
                     httpOnly: true,
+                    secure: true, // Ensure the cookie is only sent over HTTPS
+                    sameSite: 'None', // Allows cross-origin requests
+                    path: '/',
                   })
                   .json(user);
               } else {
@@ -70,11 +76,14 @@ class UserController {
 
   static logout(req, res) {
     res
-      .cookie('usertoken', jwt.sign({ _id: '' }, secret), {
+      .cookie('usertoken', '', {
         httpOnly: true,
-        maxAge: 0,
+        maxAge: 0, // Deletes the cookie
+        secure: true, // Ensure it's over HTTPS
+        sameSite: 'None', // Allows cross-origin requests
+        path: '/',
       })
-      .json({ msg: 'Logged out sucdessfully!' });
+      .json({ msg: 'Logged out successfully!' });
   }
 }
 
