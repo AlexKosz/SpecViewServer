@@ -6,6 +6,23 @@ const User = require('../models/user.model');
 class FileController {
   static async upload(req, res) {
     try {
+      // 1. Check if token exists
+      if (!req?.cookies?.usertoken) {
+        return res.status(401).json({ msg: 'User not logged in' });
+      }
+
+      // 2. Decode and verify token
+      const decodedJWT = jwt.decode(req.cookies.usertoken, { complete: true });
+      if (!decodedJWT?.payload?._id) {
+        return res.status(401).json({ msg: 'Invalid authentication token' });
+      }
+
+      // 3. Find user
+      const user = await User.findById(decodedJWT.payload._id);
+      if (!user) {
+        return res.status(401).json({ msg: 'User not found' });
+      }
+
       const fileToSave = {
         ...req.body,
         testResults: req?.body?.testResults.map((result) => ({
@@ -16,18 +33,10 @@ class FileController {
             status: assertion.status,
           })),
         })),
+        userId: user._id,
       };
 
       delete fileToSave.snapshot;
-
-      const decodedJWT = jwt.decode(req.cookies.usertoken, { complete: true });
-      const user = await User.findById(decodedJWT.payload._id);
-
-      if (!user) {
-        return res.status(401).json({ msg: 'User not logged in' });
-      }
-
-      fileToSave.userId = user._id;
 
       const file = new File(fileToSave);
       await file.save();
@@ -56,6 +65,10 @@ class FileController {
 
   static async getUserFiles(req, res) {
     try {
+      if (!req?.cookies?.usertoken) {
+        return res.status(401).json({ msg: 'User not logged in' });
+      }
+
       const decodedJWT = jwt.decode(req.cookies.usertoken, { complete: true });
       const user = await User.findById(decodedJWT.payload._id);
 

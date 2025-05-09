@@ -5,73 +5,85 @@ const User = require('../models/user.model');
 const { secret } = require('../config/jwt');
 
 class UserController {
-  static register(req, res) {
-    const userToCreate = { ...req.body };
+  static async register(req, res) {
+    try {
+      const userToCreate = { ...req.body };
+      const user = new User(userToCreate);
+      await user.save();
 
-    const user = new User(userToCreate);
-    user
-      .save()
-      .then(() => {
-        res
-          .cookie('usertoken', jwt.sign({ _id: user.id }, secret), {
-            httpOnly: true,
-            secure: true, // Ensure the cookie is only sent over HTTPS
-            sameSite: 'None', // Allows cross-origin requests
-            path: '/',
-          })
-          .json({ msg: 'Created user successfully', user });
-      })
-      .catch((err) => {
-        // Duplicate email error
-        if (err.code === 11000 && err.keyPattern?.email) {
-          return res.status(400).json({ error: 'Email already in use' });
-        }
+      const token = jwt.sign({ _id: user._id }, secret);
 
-        // Validation errors
-        if (err.name === 'ValidationError') {
-          const errors = Object.values(err.errors).map((e) => e.message);
-          return res.status(400).json({ errors });
-        }
+      res
+        .cookie('usertoken', token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'None',
+          path: '/',
+        })
+        .json({
+          msg: 'Created user successfully',
+          user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+          },
+        });
+    } catch (err) {
+      if (err.code === 11000) {
+        return res.status(400).json({ error: 'Email already in use' });
+      }
 
-        // Generic fallback
-        console.error(err);
-        return res.status(500).json({ error: 'Something went wrong' });
-      });
+      if (err.name === 'ValidationError') {
+        const errors = Object.values(err.errors).map((e) => e.message);
+        return res.status(400).json({ errors });
+      }
+
+      return res.status(500).json({ error: 'Something went wrong' });
+    }
+
+    return res.status(500).json({ error: 'Something went wrong' });
   }
 
-  static login(req, res) {
-    User.findOne({ email: req.body.email })
-      .then((user) => {
-        if (user === null) {
-          res.json({ msg: 'Invalid email or password' });
-        } else {
-          bcrypt
-            .compare(req.body.password, user.password)
-            .then((passwordIsValid) => {
-              if (passwordIsValid) {
-                res
-                  .cookie('usertoken', jwt.sign({ _id: user.id }, secret), {
-                    httpOnly: true,
-                    secure: true, // Ensure the cookie is only sent over HTTPS
-                    sameSite: 'None', // Allows cross-origin requests
-                    path: '/',
-                  })
-                  .json(user);
-              } else {
-                res.json({ msg: 'Invalid email or password' });
-              }
-            })
-            .catch((err) => res.json({ msg: 'invalid attempt' }, err));
-        }
-      })
-      .catch((err) => res.json(err));
+  static async login(req, res) {
+    try {
+      const user = await User.findOne({ email: req.body.email });
+      if (!user) {
+        return res.status(400).json({ msg: 'Invalid email or password' });
+      }
+
+      const passwordIsValid = await bcrypt.compare(req.body.password, user.password);
+      if (!passwordIsValid) {
+        return res.status(400).json({ msg: 'Invalid email or password' });
+      }
+
+      const token = jwt.sign({ _id: user._id }, secret);
+      const { password, ...userWithoutPassword } = user.toObject();
+
+      return res
+        .cookie('usertoken', token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'None',
+          path: '/',
+        })
+        .json(userWithoutPassword);
+    } catch (err) {
+      const msg = err.message.includes('bcrypt')
+        ? 'Something went wrong during password check'
+        : 'Something went wrong during login';
+      return res.status(500).json({ msg });
+    }
   }
 
-  static getLoggedInUser(req, res) {
-    const decoded = jwt.decode(req.cookies.usertoken, { complete: true });
-    User.findById(decoded.payload._id)
-      .then((user) => res.json(user))
-      .catch((err) => res.json(err));
+  static async getLoggedInUser(req, res) {
+    try {
+      const token = req.cookies.usertoken;
+      const decoded = jwt.decode(token, { complete: true });
+      const user = await User.findById(decoded.payload._id);
+      return res.json(user);
+    } catch (err) {
+      return res.status(400).json({ error: err.message }); // Make sure the status is sent here
+    }
   }
 
   static logout(req, res) {
