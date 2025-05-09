@@ -7,34 +7,75 @@ const FileSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
-    numFailedTestSuites: Number,
-    numFailedTests: Number,
-    numPassedTestSuites: Number,
-    numPassedTests: Number,
+    numFailedTestSuites: {
+      type: Number,
+      required: true,
+    },
+    numFailedTests: {
+      type: Number,
+      required: true,
+    },
+    numPassedTestSuites: {
+      type: Number,
+      required: true,
+    },
+    numPassedTests: {
+      type: Number,
+      required: true,
+    },
     numPendingTestSuites: Number,
     numPendingTests: Number,
     numRuntimeErrorTestSuites: Number,
     numTodoTests: Number,
     numTotalTestSuites: Number,
     numTotalTests: Number,
-    startTime: Number,
+    startTime: {
+      type: Number,
+      required: true,
+    },
     success: Boolean,
-    testResults: [
-      {
-        assertionResults: [
-          {
-            fullName: String,
-            duration: Number,
-            status: String,
-            failureMessages: [String],
+    testResults: {
+      type: [
+        {
+          name: {
+            type: String,
+            required: true,
           },
-        ],
-        name: String,
-        status: String,
-      },
-    ],
+          status: {
+            type: String,
+            required: true,
+          },
+          assertionResults: {
+            type: [
+              {
+                fullName: {
+                  type: String,
+                  required: true,
+                },
+                duration: Number,
+                status: {
+                  type: String,
+                  required: true,
+                },
+                failureMessages: {
+                  type: [String],
+                  default: [],
+                },
+              },
+            ],
+            required: true,
+            validate: [(val) => val.length > 0, 'At least one assertion result is required.'],
+          },
+        },
+      ],
+      required: true,
+      validate: [(val) => val.length > 0, 'At least one test result is required.'],
+    },
     wasInterrupted: Boolean,
-    name: String,
+    name: {
+      type: String,
+      required: true,
+    },
   },
   { timestamps: true },
 );
